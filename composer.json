@@ -1,0 +1,23 @@
+{
+  "name": "vendor_name/doc",
+  "description": "description",
+  "minimum-stability": "dev",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "V.Kolodii",
+      "email": "kolodijv80@gmail.com"
+    }
+  ],
+  "require": {
+    "doctrine/orm": "^2.8.5",
+    "symfony/yaml": "2.8.52",
+    "symfony/http-foundation": "5.4.x-dev",
+    "doctrine/cache": "2.2.x-dev",
+    "symfony/cache": "5.4.x-dev",
+    "doctrine/annotations": "1.14.x-dev"
+  },
+  "autoload": {
+    "psr-0": {"": "src/"}
+  }
+}
