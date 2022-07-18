@@ -66,7 +66,7 @@ class FormHandler
     protected function findByName($query, $searchName)
     {
         return $query->andWhere('u.name LIKE :name')
-            ->setParameter('name', $searchName);
+            ->setParameter('name', "%$searchName%");
     }
 
     /**
@@ -106,7 +106,7 @@ class FormHandler
      *
      * @return mixed
      */
-    public function sortByName($query, $sortName)
+    protected function sortByName($query, $sortName)
     {
         if ($sortName === 'asc') {
             $query = $query->orderBy('u.name', 'ASC');
