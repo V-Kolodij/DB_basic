@@ -1,6 +1,7 @@
 <?php
 
 require_once 'bootstrap.php';
+require_once 'src/FormHandler.php';
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Cookie;

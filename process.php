@@ -1,5 +1,6 @@
 <?php
 
+use Doctrine\ORM\EntityNotFoundException;
 use Doctrine\ORM\QueryBuilder;
 
 $route = $request->query->get('route');
@@ -7,16 +8,21 @@ $id = $request->query->get('id');
 $page = $request->query->get('page', 1);
 $sortName = $request->query->get('sort-name');
 $searchName = $request->query->get('search-name');
+$formHandler = new FormHandler($entityManager);
 
-if ($route === 'delete') {
-    deleteItem($id, $entityManager);
-    renderIndex($entityManager, $page, $sortName, $searchName);
-} elseif ($route === 'create') {
+if ($route === 'create') {
     include 'view/create.php';
-} elseif ($route === 'update') {
-    $product = findById($_GET['id'], $entityManager);
-
-    include 'view/update.php';
+} else {
+    if (empty($id)) {
+        throw new EntityNotFoundException();
+    }
+    if ($route === 'delete') {
+        $formHandler->deleteItem($id);
+        renderIndex($entityManager, $page, $sortName, $searchName, $formHandler);
+    } elseif ($route === 'update') {
+        $product = $formHandler->findById($id);
+        include 'view/update.php';
+    }
 }
 
 if ($route == '') {
@@ -24,12 +30,12 @@ if ($route == '') {
     $id = $request->get('id');
 
     if ($name && null === $id) {
-        createItem($name, $entityManager);
+        $formHandler->createItem($name);
     }
     if ($name && $id) {
-        updateItem($name, $id, $entityManager);
+        $formHandler->updateItem($name, $id);
     }
-    renderIndex($entityManager, $page, $sortName, $searchName);
+    renderIndex($entityManager, $page, $sortName, $searchName, $formHandler);
 }
 
 /**
@@ -37,8 +43,9 @@ if ($route == '') {
  * @param $page
  * @param $sortName
  * @param $searchName
+ * @param $formHandler
  */
-function renderIndex($entityManager, $page, $sortName, $searchName)
+function renderIndex($entityManager, $page, $sortName, $searchName, $formHandler)
 {
     $qb = new QueryBuilder($entityManager);
 
@@ -48,117 +55,15 @@ function renderIndex($entityManager, $page, $sortName, $searchName)
         ->setMaxResults(5);
 
     if (!empty($sortName)) {
-        sortByName($qb, $sortName);
+        $formHandler->sortByName($qb, $sortName);
     }
     if (!empty($searchName)) {
-        findByName($qb, $searchName);
+        $formHandler->findByName($qb, $searchName);
     }
 
     $query = $qb->getQuery();
     $products = $query->getResult();
 
-    $count = getCountProduct($searchName, $entityManager);
+    $count = $formHandler->getCountProduct($searchName, $entityManager);
     include 'view/index.php';
-}
-
-/**
- * @param $id
- * @param $entityManager
- */
-function deleteItem($id, $entityManager)
-{
-    if (!empty($id)) {
-        $product = findById($id, $entityManager);
-        if (!empty($product)) {
-            $entityManager->remove($product);
-            $entityManager->flush();
-        }
-    }
-}
-
-/**
- * @param $name
- * @param $entityManager
- */
-function createItem($name, $entityManager)
-{
-    $product = new Product();
-    $product->setName($name);
-    $entityManager->persist($product);
-    $entityManager->flush();
-}
-
-/**
- * @param $name
- * @param $id
- * @param $entityManager
- */
-function updateItem($name, $id, $entityManager)
-{
-    $product = findById($id, $entityManager);
-    if (!empty($product)) {
-        $product->setName($name);
-        $entityManager->flush();
-    }
-}
-
-/**
- * @param $query
- * @param $searchName
- *
- * @return mixed
- */
-function findByName($query, $searchName)
-{
-    return $query->andWhere('u.name LIKE :name')
-        ->setParameter('name', $searchName);
-}
-
-/**
- * @param $id
- * @param $entityManager
- *
- * @return mixed
- */
-function findById($id, $entityManager)
-{
-    $productRepository = $entityManager->getRepository('Product');
-
-    return $productRepository->find($id);
-}
-
-/**
- * @param $searchName
- * @param $entityManager
- *
- * @return mixed
- */
-function getCountProduct($searchName, $entityManager)
-{
-    $repository = $entityManager->getRepository('Product');
-
-    $countQuery = $repository->createQueryBuilder('u')
-        ->select('count(u.id)');
-    if (!empty($searchName)) {
-        findByName($countQuery, $searchName);
-    }
-
-    return $countQuery->getQuery()->getSingleScalarResult();
-}
-
-/**
- * @param $query
- * @param $sortName
- *
- * @return mixed
- */
-function sortByName($query, $sortName)
-{
-    if ($sortName === 'asc') {
-        $query = $query->orderBy('u.name', 'ASC');
-    } elseif ($sortName === 'desc') {
-        $query = $query->orderBy('u.name', 'DESC');
-    }
-
-    return $query;
 }
